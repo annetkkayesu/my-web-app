@@ -1,44 +1,3 @@
-// pipeline {
-//     agent any
-
-//     environment {
-//         DOCKER_IMAGE = 'kayesu/my-web-app'
-//         DOCKER_CREDENTIALS_ID = 'docker-hub-credentials'
-//     }
-
-//     stages {
-
-//         stage('Checkout') {
-//             steps {
-//                 checkout scm
-//             }
-//         }
-
-//         stage('Build & Push Image') {
-//             steps {
-//                 script {
-//                     echo "Building & pushing Docker image..."
-
-//                     docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
-
-//                         def img = docker.build("${DOCKER_IMAGE}:latest")
-
-//                         img.push("latest")
-//                     }
-
-//                 }
-//             }
-//         }
-
-//         stage('Deploy') {
-//             steps {
-//                 echo "Deployment step goes here (optional)"
-//             }
-//         }
-//     }
-// }
-
-
 pipeline {
     agent any
 
@@ -68,7 +27,7 @@ pipeline {
         stage('Build') {
             steps {
                 echo "Building the project..."
-                bat 'dir'   // Windows agent
+                bat 'dir' // Windows agent
             }
         }
 
@@ -79,23 +38,18 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-            steps {
-                echo "Deploying..."
-            }
-        }
-
         stage('Build and Push Docker Image') {
             steps {
                 script {
-                    // We stick with your TCP config if that is how your Docker Desktop is set up
-                    docker.withServer('tcp://localhost:2375') {
-                        // Notice I added the tag to the build command to be safe
-                        def dockerImage = docker.build("${DOCKER_IMAGE}:latest", "--no-cache .")
+                    // Use command line for build and tag for stability on Windows
+                    bat "docker build -t ${DOCKER_IMAGE}:latest --no-cache ."
+                    
+                    // Use the correct Docker Hub registry URL and credentials for login
+                    docker.withRegistry('https://registry.hub.docker.com', DOCKER_CREDENTIALS_ID) {
                         
-                        docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
-                            dockerImage.push('latest')
-                        }
+                        // Use the command line push for stability
+                        echo "Pushing Docker image: ${DOCKER_IMAGE}:latest"
+                        bat "docker push ${DOCKER_IMAGE}:latest"
                     }
                 }
             }
@@ -103,11 +57,11 @@ pipeline {
 
         stage('Deploy to Local Docker Host') {
             steps {
-                // FIXED: Used %DOCKER_IMAGE% variable instead of "username/..."
-                // Added logic to stop the container only if it is actually running to prevent errors
+                echo "Attempting to deploy image ${DOCKER_IMAGE}:latest"
+                // Added logic to stop/remove containers gracefully
                 bat """
-                    docker stop my-web-app || echo "Container not running..."
-                    docker rm -f my-web-app || echo "No container to remove..."
+                    docker stop my-web-app || echo "Container not running/stopped."
+                    docker rm -f my-web-app || echo "No container to remove."
                     docker run -d --name my-web-app -p 8090:3000 ${DOCKER_IMAGE}:latest
                 """
             }
@@ -116,10 +70,10 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline completed successfully!"
+            echo "Pipeline completed successfully! App running on port 8090."
         }
         failure {
-            echo "Pipeline failed Check logs."
+            echo "Pipeline failed. Check logs for the exact step failure."
         }
     }
 }
