@@ -1,17 +1,17 @@
-(1)Define Environment Variables (Optional) pipeline { 
+ pipeline { 
     agent any 
  
     environment { 
         DOCKER_IMAGE = 'dockerhub_username/my-web-app' 
         DOCKER_CREDENTIALS_ID = 'docker-hub-credentials'  // Jenkins credentials ID 
     } 
-(2) Add a Build and Push Stage     stages { 
+     stages { 
         stage('Build Docker Image') {             steps {                 script { 
                     dockerImage = docker.build("${DOCKER_IMAGE}:latest") 
                 } 
             } 
         } 
-(3)Complete Jenkinsfile Example pipeline { 
+ pipeline { 
     agent any 
  
     environment { 
