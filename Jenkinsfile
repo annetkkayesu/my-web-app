@@ -5,20 +5,21 @@ pipeline {
         stage('Build') {
             steps {
                 echo "Building the project..."
-                sh 'ls -la'
-                // For Windows: bat 'dir'
+                bat 'dir'
             }
         }
 
         stage('Test') {
             steps {
                 echo "Running tests..."
+                bat 'echo Tests completed'
             }
         }
 
         stage('Deploy') {
             steps {
                 echo "Deploying..."
+                bat 'echo Deployment step'
             }
         }
     }
